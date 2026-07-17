@@ -165,6 +165,24 @@ def admin_review(bid):
         conn.execute("ROLLBACK"); conn.close()
         return jsonify({'ok':False}),500
 
+@app.route('/admin/api/bookings/<int:bid>/delete', methods=['POST'])
+def admin_delete(bid):
+    if not check_admin(): return jsonify({'ok':False}),401
+    conn = get_conn()
+    try:
+        conn.execute("BEGIN IMMEDIATE")
+        b = conn.execute("SELECT * FROM bookings WHERE id=?",(bid,)).fetchone()
+        if not b:
+            conn.execute("ROLLBACK"); conn.close()
+            return jsonify({'ok':False}),404
+        conn.execute("DELETE FROM bookings WHERE id=?",(bid,))
+        conn.execute("UPDATE schedules SET status='open' WHERE id=?",(b['schedule_id'],))
+        conn.execute("COMMIT"); conn.close()
+        return jsonify({'ok':True})
+    except Exception:
+        conn.execute("ROLLBACK"); conn.close()
+        return jsonify({'ok':False}),500
+
 @app.route('/admin/api/stats')
 def admin_stats():
     if not check_admin(): return jsonify({'ok':False}),401
