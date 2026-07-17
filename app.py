@@ -33,8 +33,9 @@ def api_schedules():
     rows = conn.execute("SELECT * FROM schedules ORDER BY date, time_slot").fetchall()
     conn.close()
     # 过滤已过期：今天之前的日期，以及今天已过的时间段
-    from datetime import datetime
-    now = datetime.now()
+    from datetime import datetime, timezone, timedelta
+    tz = timezone(timedelta(hours=8))
+    now = datetime.now(tz)
     today_str = now.strftime('%Y-%m-%d')
     now_min = now.hour * 60 + now.minute
     result = []

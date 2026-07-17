@@ -14,8 +14,9 @@ def api_schedules():
     conn = get_conn()
     rows = conn.execute("SELECT * FROM schedules ORDER BY date, time_slot").fetchall()
     conn.close()
-    from datetime import datetime
-    now = datetime.now()
+    from datetime import datetime, timezone, timedelta
+    tz = timezone(timedelta(hours=8))
+    now = datetime.now(tz)
     today_str = now.strftime('%Y-%m-%d')
     now_min = now.hour * 60 + now.minute
     result = []
