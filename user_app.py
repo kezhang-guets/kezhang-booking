@@ -10,17 +10,25 @@ def index():
 
 @app.route('/api/schedules')
 def api_schedules():
+    generate_schedules()
     conn = get_conn()
-    rows = conn.execute(
-        "SELECT * FROM schedules ORDER BY date, time_slot"
-    ).fetchall()
+    rows = conn.execute("SELECT * FROM schedules ORDER BY date, time_slot").fetchall()
     conn.close()
-    if not rows:
-        generate_schedules()
-        conn = get_conn()
-        rows = conn.execute("SELECT * FROM schedules ORDER BY date, time_slot").fetchall()
-        conn.close()
-    return jsonify([dict(r) for r in rows])
+    from datetime import datetime
+    now = datetime.now()
+    today_str = now.strftime('%Y-%m-%d')
+    now_min = now.hour * 60 + now.minute
+    result = []
+    for r in rows:
+        if r['date'] < today_str:
+            continue
+        if r['date'] == today_str:
+            end = r['time_slot'].split('-')[1]
+            eh, em = end.split(':')
+            if int(eh) * 60 + int(em) <= now_min:
+                continue
+        result.append(dict(r))
+    return jsonify(result)
 
 @app.route('/api/bookings', methods=['POST'])
 def api_submit():
