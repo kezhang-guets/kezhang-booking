@@ -254,11 +254,8 @@ def admin_init():
     return jsonify({'ok':True,'count':count})
 
 if __name__ == '__main__':
+    import os
+    port = int(os.environ.get('PORT', 5000))
     init_db()
     generate_schedules()
-    print("\n" + "="*50)
-    print("  杨科璋沉浸课堂预约系统")
-    print("  用户端: http://localhost:5000/")
-    print("  管理端: http://localhost:5000/admin")
-    print("="*50 + "\n")
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    app.run(host='0.0.0.0', port=port, debug=False)
