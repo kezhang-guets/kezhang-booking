@@ -176,7 +176,7 @@ function bind(){
   document.querySelectorAll('.rv-btn').forEach(el => el.onclick = async ()=>{
     const {bid,action} = el.dataset;
     let reason = '';
-    if(action==='reject'){reason=prompt('请输入拒绝原因（选填）：')||''; if(reason===null)return;}
+    if(action==='reject'){while(!reason){reason=prompt('请输入拒绝原因（必填）：');if(reason===null)return;reason=(reason||'').trim();if(!reason)alert('拒绝原因不能为空');}}
     if(action==='cancel'){if(!confirm('确定撤销该预约？'))return;}
     if(action==='complete'){if(!confirm('确定标记为已完结？'))return;}
     await fetch(API+'/api/bookings/'+bid+'/review',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,reason,token:state.token})});
