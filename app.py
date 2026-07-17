@@ -28,14 +28,10 @@ def admin_page():
 # ====== 用户端 API ======
 @app.route('/api/schedules')
 def api_schedules():
+    generate_schedules()  # 每次请求自动补未来14天排期
     conn = get_conn()
     rows = conn.execute("SELECT * FROM schedules ORDER BY date, time_slot").fetchall()
     conn.close()
-    if not rows:
-        generate_schedules()
-        conn = get_conn()
-        rows = conn.execute("SELECT * FROM schedules ORDER BY date, time_slot").fetchall()
-        conn.close()
     return jsonify([dict(r) for r in rows])
 
 @app.route('/api/bookings', methods=['POST'])
