@@ -7,7 +7,7 @@ import sys
 import os
 
 # 项目路径（PythonAnywhere 上需修改为你的路径）
-project_home = '/home/kezhangguets/kezhang-booking'
+project_home = '/home/George66Ls/kezhang-booking'
 if project_home not in sys.path:
     sys.path.insert(0, project_home)
 
