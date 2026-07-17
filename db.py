@@ -79,7 +79,7 @@ def generate_schedules(days=14):
     conn = get_conn()
     today = datetime.now()
     count = 0
-    for i in range(1, days + 1):
+    for i in range(0, days):
         d = today + timedelta(days=i)
         wd = d.weekday()  # 0=Mon, 6=Sun
         if wd < 1 or wd > 4:  # skip Mon(0) and Sat/Sun(5,6)
