@@ -188,7 +188,8 @@ function bind(){
     if(action==='reject'){while(!reason){reason=prompt('请输入拒绝原因（必填）：');if(reason===null)return;reason=(reason||'').trim();if(!reason)alert('拒绝原因不能为空');}}
     if(action==='cancel'){if(!(await customConfirm('确定撤销该预约？')))return;}
     if(action==='complete'){if(!(await customConfirm('确定标记为已完结？')))return;}
-    await fetch(API+'/api/bookings/'+bid+'/review',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,reason,token:state.token})});
+    const res = await fetch(API+'/api/bookings/'+bid+'/review',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,reason,token:state.token})}).then(r=>r.json());
+    if(!res.ok){alert(res.msg);return;}
     loadData();
   });
 
