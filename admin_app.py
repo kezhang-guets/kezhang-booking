@@ -98,6 +98,19 @@ def api_review(bid):
         status_map = {'approve':'approved', 'reject':'rejected', 'cancel':'cancelled', 'complete':'completed'}
         status = status_map[action]
 
+        if action == 'complete':
+            s = conn.execute("SELECT date, time_slot FROM schedules WHERE id=?",(b['schedule_id'],)).fetchone()
+            if s:
+                from datetime import datetime, timezone, timedelta
+                tz = timezone(timedelta(hours=8))
+                now = datetime.now(tz)
+                end_time = s['time_slot'].split('-')[1]
+                eh, em = end_time.split(':')
+                slot_end = datetime.strptime(s['date']+' '+eh+':'+em, '%Y-%m-%d %H:%M').replace(tzinfo=tz)
+                if now < slot_end:
+                    conn.execute("ROLLBACK"); conn.close()
+                    return jsonify({'ok':False,'msg':'该时段尚未结束，不能完结'}),400
+
         if action in ('reject', 'cancel'):
             if action == 'reject':
                 conn.execute("UPDATE bookings SET status=?, reject_reason=? WHERE id=?", (status, reason, bid))
