@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>管理后台 · 科璋课堂</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--red:#C41E3A;--bg:#F5F5F5;--card:#FFF;--text:#333;--muted:#999;--border:#E8E8E8}
+body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;font-size:14px;color:var(--text);background:var(--bg);line-height:1.6}
+.container{max-width:600px;margin:0 auto;padding:20px}
+.login-box{max-width:320px;margin:120px auto;background:var(--card);border-radius:16px;padding:40px 30px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.login-box h1{text-align:center;font-size:20px;font-weight:600;margin-bottom:24px;color:var(--red)}
+.login-box input{width:100%;height:48px;border:1px solid var(--border);border-radius:8px;padding:0 14px;font-size:15px;text-align:center;margin-bottom:16px;outline:none}
+.login-box input:focus{border-color:var(--red)}
+.btn{display:inline-block;padding:6px 16px;border:none;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer}
+.btn-red{background:var(--red);color:#fff}
+.btn-outline{background:#fff;color:var(--red);border:1px solid var(--red)}
+.btn-block{display:block;width:100%;padding:12px;font-size:15px}
+
+.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:12px}
+.tag-pending{background:#FFF7E6;color:#D46B08}
+.tag-approved{background:#F6FFED;color:#389E0D}
+.tag-rejected{background:#FFF1F0;color:#CF1322}
+.tag-cancelled{background:#F5F5F5;color:#999}
+.tag-completed{background:#E6F7FF;color:#1890FF}
+
+.card{background:var(--card);border-radius:12px;padding:20px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.card h2{font-size:16px;font-weight:600;margin-bottom:12px;padding-left:10px;border-left:3px solid var(--red)}
+
+.tab-bar{display:flex;overflow-x:auto;gap:4px;background:#fff;border-radius:10px;padding:6px;margin-bottom:16px;-webkit-overflow-scrolling:touch}
+.tab-bar::-webkit-scrollbar{display:none}
+.tab-item{flex-shrink:0;padding:8px 14px;font-size:13px;border-radius:8px;cursor:pointer;white-space:nowrap;color:#666;background:transparent;border:none}
+.tab-item.active{background:var(--red);color:#fff;font-weight:500}
+
+.top-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.top-bar h1{font-size:20px;font-weight:600}
+
+.booking-row{display:flex;align-items:flex-start;justify-content:space-between;padding:14px 0;border-bottom:1px solid #f5f5f5}
+.booking-info{flex:1}
+.booking-info .title{font-weight:500;margin-bottom:4px}
+.booking-info .meta{font-size:12px;color:var(--muted);line-height:1.6}
+.booking-actions{display:flex;gap:4px;flex-shrink:0;margin-left:8px}
+
+.stats-mini{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.stats-mini span{background:#fff;padding:4px 10px;border-radius:12px;font-size:12px;color:var(--muted)}
+
+.empty{text-align:center;padding:40px 0;color:#ccc}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+const API = '/admin';
+let state = {loggedIn:false,token:'',filter:'pending',bookings:[],stats:null};
+
+function setState(p){Object.assign(state,p);render();}
+
+function render(){
+  document.getElementById('app').innerHTML = state.loggedIn ? renderPanel() : renderLogin();
+  bind();
+}
+
+function renderLogin(){
+  return `<div class="container"><div class="login-box"><h1>管理后台</h1><p style="text-align:center;font-size:13px;color:var(--muted);margin-bottom:20px">杨科璋沉浸课堂预约管理</p><input id="pwIn" type="password" placeholder="请输入管理密码" onkeydown="if(event.key==='Enter')doLogin()"><button class="btn btn-red btn-block" id="loginBtn">登 录</button></div></div>`;
+}
+
+function renderPanel(){
+  const {bookings, stats, filter} = state;
+
+  let h = '<div class="container"><div class="top-bar"><h1>管理后台</h1><div><button class="btn btn-outline" id="refreshBtn" style="margin-right:6px">刷新</button><button class="btn btn-outline" id="logoutBtn">退出</button></div></div>';
+
+  if(stats){
+    h += '<div class="stats-mini">';
+    h += `<span>总计 ${stats.total}</span><span>待审 ${stats.pending}</span><span>通过 ${stats.approved}</span><span>拒绝 ${stats.rejected}</span><span>撤销 ${stats.cancelled}</span><span>完结 ${stats.completed}</span>`;
+    h += '</div>';
+  }
+
+  const tabs = [
+    {key:'pending',label:'待审核'},
+    {key:'approved',label:'已通过'},
+    {key:'rejected',label:'已拒绝'},
+    {key:'cancelled',label:'已撤销'},
+    {key:'completed',label:'已完结'},
+    {key:'settings',label:'系统设置'},
+  ];
+
+  h += '<div class="tab-bar">';
+  tabs.forEach(t => {
+    h += `<button class="tab-item${filter===t.key?' active':''}" data-filter="${t.key}">${t.label}</button>`;
+  });
+  h += '</div>';
+
+  if(filter === 'settings'){
+    h += renderSettings();
+  } else {
+    const filtered = bookings.filter(b => b.status === filter);
+    if(!filtered.length) h += '<div class="empty">暂无记录</div>';
+    else filtered.forEach(b => {
+      const sm = {pending:['待审核','tag-pending'],approved:['已通过','tag-approved'],rejected:['已拒绝','tag-rejected'],cancelled:['已撤销','tag-cancelled'],completed:['已完结','tag-completed']};
+      const [st,sc] = sm[b.status]||[b.status,''];
+
+      let btns = '';
+      if(b.status === 'pending'){
+        btns = `<button class="btn btn-outline rv-btn" data-bid="${b.id}" data-action="reject">拒绝</button><button class="btn btn-red rv-btn" data-bid="${b.id}" data-action="approve">通过</button>`;
+      } else if(b.status === 'approved'){
+        btns = `<button class="btn btn-outline rv-btn" data-bid="${b.id}" data-action="cancel">撤销</button><button class="btn btn-red rv-btn" data-bid="${b.id}" data-action="complete">完结</button>`;
+      }
+
+      h += `<div class="card" style="padding:14px 16px"><div class="booking-row">
+        <div class="booking-info">
+          <div class="title">${b.date||''} ${b.time_slot||''} <span class="tag ${sc}">${st}</span></div>
+          <div class="meta">到场时间：${esc(b.arrival_time||'')} | 单位：${esc(b.org_name)}<br>联系人：${esc(b.contact_name)} | 电话：${esc(b.contact_phone)} | QQ：${esc(b.contact_qq)} | 人数：${b.headcount}人${b.reject_reason?`<br>拒绝原因：${esc(b.reject_reason)}`:''}</div>
+        </div>
+        ${btns?`<div class="booking-actions">${btns}</div>`:''}
+      </div></div>`;
+    });
+  }
+
+  h += '</div>';
+  return h;
+}
+
+function renderSettings(){
+  const cfg = state.config || {};
+  let h = '<div class="card"><h2>修改密码</h2>';
+  h += '<div style="margin:8px 0"><label style="font-size:13px;color:#666;display:block;margin-bottom:4px">旧密码</label><input id="cfg_old_pw" type="password" style="width:100%;height:40px;border:1px solid var(--border);border-radius:6px;padding:0 10px;font-size:14px"></div>';
+  h += '<div style="margin:8px 0"><label style="font-size:13px;color:#666;display:block;margin-bottom:4px">新密码（至少6位）</label><input id="cfg_new_pw" type="password" style="width:100%;height:40px;border:1px solid var(--border);border-radius:6px;padding:0 10px;font-size:14px"></div>';
+  h += '<button class="btn btn-red" style="width:100%;margin-top:8px" id="savePwBtn">修改密码</button>';
+  h += '</div>';
+
+  h += '<div class="card"><h2>前端内容</h2>';
+  const fields = [
+    {key:'contact_name', label:'撤销预约联系人', rows:1},
+    {key:'contact_phone', label:'联系人电话', rows:1},
+    {key:'contact_qq', label:'联系人QQ', rows:1},
+  ];
+  fields.forEach(f => {
+    const val = esc(cfg[f.key]||'');
+    h += `<div style="margin:8px 0"><label style="font-size:13px;color:#666;display:block;margin-bottom:4px">${f.label}</label><input class="cfg-input" data-key="${f.key}" value="${val}" style="width:100%;height:40px;border:1px solid var(--border);border-radius:6px;padding:0 10px;font-size:14px"></div>`;
+  });
+
+  h += '<button class="btn btn-red" style="width:100%;margin-top:8px" id="saveCfgBtn">保存配置</button>';
+  h += '</div>';
+  return h;
+}
+
+async function loadData(){
+  const [b,s] = await Promise.all([
+    fetch(API+'/api/bookings?token='+state.token).then(r=>r.json()),
+    fetch(API+'/api/stats?token='+state.token).then(r=>r.json())
+  ]);
+  setState({bookings:Array.isArray(b)?b:[], stats:s});
+}
+
+async function loadConfig(){
+  const cfg = await fetch(API+'/api/config?token='+state.token).then(r=>r.json());
+  state.config = cfg;
+}
+
+function bind(){
+  document.getElementById('loginBtn')?.addEventListener('click', doLogin);
+  document.getElementById('logoutBtn')?.addEventListener('click', ()=>setState({loggedIn:false,token:'',bookings:[],stats:null}));
+  document.getElementById('refreshBtn')?.addEventListener('click', ()=>{
+    loadData();
+    if(state.filter==='settings') loadConfig();
+  });
+
+  document.querySelectorAll('.tab-item').forEach(el => el.onclick = ()=>{
+    const filter = el.dataset.filter;
+    setState({filter});
+    if(filter==='settings') loadConfig();
+  });
+
+  document.querySelectorAll('.rv-btn').forEach(el => el.onclick = async ()=>{
+    const {bid,action} = el.dataset;
+    let reason = '';
+    if(action==='reject'){reason=prompt('请输入拒绝原因（选填）：')||''; if(reason===null)return;}
+    if(action==='cancel'){if(!confirm('确定撤销该预约？'))return;}
+    if(action==='complete'){if(!confirm('确定标记为已完结？'))return;}
+    await fetch(API+'/api/bookings/'+bid+'/review',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,reason,token:state.token})});
+    loadData();
+  });
+
+  document.getElementById('savePwBtn')?.addEventListener('click', async ()=>{
+    const oldPw = document.getElementById('cfg_old_pw').value;
+    const newPw = document.getElementById('cfg_new_pw').value;
+    if(!oldPw||!newPw){alert('请填写完整');return;}
+    if(newPw.length<6){alert('新密码至少6位');return;}
+    const res = await fetch(API+'/api/change_password',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({old_password:oldPw,new_password:newPw,token:state.token})}).then(r=>r.json());
+    alert(res.msg);
+    if(res.ok){ state.token = newPw; }
+  });
+
+  document.getElementById('saveCfgBtn')?.addEventListener('click', async ()=>{
+    const data = {token: state.token};
+    document.querySelectorAll('.cfg-input').forEach(el => { data[el.dataset.key] = el.value; });
+    await fetch(API+'/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+    alert('配置已保存');
+  });
+}
+
+async function doLogin(){
+  const pw = document.getElementById('pwIn').value;
+  const res = await fetch(API+'/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pw})}).then(r=>r.json());
+  if(res.ok){setState({loggedIn:true,token:res.token});loadData();}
+  else alert('密码错误');
+}
+
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');}
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>杨科璋沉浸课堂 · 预约系统</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--red:#C41E3A;--red-dark:#8B1A2B;--red-light:#FDF0F2;--bg:#F5F5F5;--card:#FFF;--text:#333;--muted:#999;--border:#E8E8E8}
+body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Helvetica Neue',sans-serif;font-size:14px;color:var(--text);background:var(--bg);line-height:1.6}
+.container{max-width:480px;margin:0 auto;padding:16px 16px 90px}
+
+.hero{background:linear-gradient(135deg,var(--red) 0%,var(--red-dark) 100%);border-radius:16px;padding:36px 24px;margin-bottom:16px;color:#fff;text-align:center}
+.hero h1{font-size:24px;font-weight:600;letter-spacing:4px;margin-bottom:6px}
+.hero p{font-size:13px;opacity:.85}
+
+.gallery{position:relative;border-radius:12px;overflow:hidden;margin-bottom:16px;height:200px;background:#eee}
+.gallery-inner{display:flex;transition:transform .4s ease;height:100%}
+.gallery-slide{flex-shrink:0;width:100%;height:100%;background-size:cover;background-position:center;background-repeat:no-repeat;display:flex;align-items:flex-end;justify-content:flex-start;padding:16px;color:#fff;font-size:16px;font-weight:500;text-shadow:0 1px 4px rgba(0,0,0,.6)}
+.gallery-dots{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);display:flex;gap:8px}
+.gallery-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.4);cursor:pointer;border:none;padding:0}
+.gallery-dot.active{background:#fff}
+
+.card{background:var(--card);border-radius:12px;padding:20px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.card h2{font-size:16px;font-weight:600;margin-bottom:12px;padding-left:10px;border-left:3px solid var(--red)}
+
+.btn{display:block;width:100%;padding:12px;border:none;border-radius:8px;font-size:16px;font-weight:500;text-align:center;cursor:pointer}
+.btn-red{background:var(--red);color:#fff}
+.btn-red:disabled{background:#ccc;color:#999}
+
+.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:12px}
+.tag-pending{background:#FFF7E6;color:#D46B08}
+.tag-approved{background:#F6FFED;color:#389E0D}
+.tag-rejected{background:#FFF1F0;color:#CF1322}
+.tag-cancelled{background:#F5F5F5;color:#999}
+.tag-completed{background:#E6F7FF;color:#1890FF}
+
+.tabs{display:flex;position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--border);z-index:50;max-width:480px;margin:0 auto}
+.tab{flex:1;text-align:center;padding:10px 0;font-size:12px;color:var(--muted);cursor:pointer;border:none;background:none}
+.tab.active{color:var(--red);font-weight:500}
+
+.loading{text-align:center;padding:40px 0;color:var(--muted)}
+.empty{text-align:center;padding:60px 0;color:#ccc}
+
+.date-scroll{display:flex;overflow-x:auto;gap:8px;padding:8px 0;margin-bottom:12px}
+.date-scroll::-webkit-scrollbar{display:none}
+.date-chip{flex-shrink:0;width:72px;height:56px;border-radius:10px;border:1px solid var(--border);background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;font-size:13px;transition:all .15s}
+.date-chip.active{background:var(--red);border-color:var(--red);color:#fff}
+.date-chip .dow{font-size:11px;margin-top:2px}
+.date-chip.active .dow{opacity:.85}
+
+.slot-row{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #f5f5f5;cursor:pointer}
+.slot-time{font-size:17px;font-weight:500}
+.slot-status{font-size:12px;padding:3px 10px;border-radius:10px}
+.slot-available{background:#F6FFED;color:#389E0D}
+.slot-booked{background:#FFF1F0;color:#CF1322}
+.slot-closed{background:#F5F5F5;color:#ccc}
+.slot-arrow{color:#ccc;font-size:16px}
+
+.form-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:100;display:flex;align-items:flex-end}
+.form-panel{background:#fff;border-radius:16px 16px 0 0;width:100%;max-width:480px;margin:0 auto;padding:24px 20px 40px;max-height:85vh;overflow-y:auto}
+.form-close{float:right;font-size:22px;color:var(--muted);cursor:pointer;background:none;border:none;line-height:1}
+.form-title{font-size:17px;font-weight:600;margin-bottom:16px}
+.form-slot{background:var(--red-light);padding:10px 14px;border-radius:8px;margin-bottom:20px;font-size:14px;color:var(--red)}
+.form-group{margin-bottom:14px}
+.form-group label{display:block;font-size:14px;font-weight:500;margin-bottom:6px}
+.form-group input{width:100%;height:44px;border:1px solid var(--border);border-radius:8px;padding:0 12px;font-size:14px;background:#FAFAFA;box-sizing:border-box}
+input:focus{outline:none;border-color:var(--red)}
+
+.booking-card .bc-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.booking-card .bc-body{font-size:13px;color:#666;line-height:1.8}
+.btn-inline{display:inline-block;margin-top:10px;background:#C41E3A;color:#fff;border:none;padding:8px 16px;border-radius:6px;font-size:13px;cursor:pointer}
+.btn-inline-outline{background:#fff;color:#C41E3A;border:1px solid #C41E3A}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<nav class="tabs" id="nav">
+  <button class="tab active" data-tab="home">首页</button>
+  <button class="tab" data-tab="booking">预约</button>
+  <button class="tab" data-tab="mine">我的预约</button>
+</nav>
+
+<script>
+const API = '';
+
+let state = {
+  tab: 'home',
+  schedules: [], selectedDate: '',
+  showForm: false, selectedSlot: null,
+  form: {arrival_time:'', org_name:'', contact_name:'', contact_phone:'', contact_qq:'', headcount:''},
+  myPhone: '', myBookings: [],
+  loading: false, submitting: false,
+  galleryIndex: 0, _galleryTimer: null,
+  pageConfig: {}, config: null
+};
+
+function setState(patch) {
+  Object.assign(state, patch);
+  render();
+}
+
+function render() {
+  const el = document.getElementById('app');
+  if (state.tab === 'home') el.innerHTML = renderHome();
+  else if (state.tab === 'booking') el.innerHTML = renderBooking();
+  else if (state.tab === 'mine') el.innerHTML = renderMine();
+  bindAll();
+  if (state.tab === 'home') {
+    startGallery();
+    document.querySelectorAll('.gallery-dot').forEach(dot => {
+      dot.onclick = function() {
+        const idx = parseInt(this.dataset.i);
+        state.galleryIndex = idx;
+        const inner = document.getElementById('galleryInner');
+        if (inner) inner.style.transform = 'translateX(-' + (idx * 100) + '%)';
+        document.querySelectorAll('.gallery-dot').forEach((d, i) => d.classList.toggle('active', i === idx));
+        if (state._galleryTimer) { clearInterval(state._galleryTimer); state._galleryTimer = null; startGallery(); }
+      };
+    });
+  }
+  if (state.showForm) renderFormOverlay();
+}
+
+function stopGallery() {
+  if (state._galleryTimer) { clearInterval(state._galleryTimer); state._galleryTimer = null; }
+}
+
+function startGallery() {
+  if (state._galleryTimer || state.showForm) return;
+  state._galleryTimer = setInterval(() => {
+    if (!state.showForm && state.tab === 'home') {
+      state.galleryIndex = (state.galleryIndex + 1) % 3;
+      const inner = document.getElementById('galleryInner');
+      if (inner) inner.style.transform = 'translateX(-' + (state.galleryIndex * 100) + '%)';
+      document.querySelectorAll('.gallery-dot').forEach((d, i) => d.classList.toggle('active', i === state.galleryIndex));
+    }
+  }, 3500);
+}
+
+function renderHome() {
+  const slides = [
+    {img:'/static/images/group.jpg', txt:'团队合影'},
+    {img:'/static/images/classroom.jpg', txt:'课堂宣讲'},
+    {img:'/static/images/exhibit.jpg', txt:'展厅讲解'}
+  ];
+  const gi = state.galleryIndex;
+  return '<div class="container">'
+    + '<div class="hero"><h1>杨科璋沉浸课堂</h1><p>桂林电子科技大学·商学院本科生第三党支部</p></div>'
+    + '<div class="gallery"><div class="gallery-inner" id="galleryInner" style="transform:translateX(-' + (gi*100) + '%)">'
+    + slides.map(s => '<div class="gallery-slide" style="background-image:url(\'' + s.img + '\')"><span>' + s.txt + '</span></div>').join('')
+    + '</div><div class="gallery-dots" id="galleryDots">'
+    + slides.map((s,i) => '<button class="gallery-dot' + (i===gi?' active':'') + '" data-i="' + i + '"></button>').join('')
+    + '</div></div>'
+    + '<div class="card"><h2>关于我们</h2><p style="color:#666;line-height:1.8">杨科璋精神宣讲团于2025年4月正式成立，由桂林电子科技大学商学院本科生第三党支部牵头组建，是全国首个以杨科璋烈士命名的高校学生宣讲团队。团队以商学院优秀毕业生、"感动中国2017年度人物"、全国消防英雄杨科璋的先进事迹为核心，依托杨科璋沉浸课堂展厅、烈士雕像广场、科璋讲堂三大阵地，秉持"讲好英雄故事、传承红色基因、践行青年责任"的宗旨，构建"展厅沉浸式讲解 + 校园巡回宣讲 + 基层实践分享"三位一体模式。现有核心成员32名、后备宣讲员18名，已累计开展15余场宣讲活动，接待480余人次。</p></div>'
+    + '<div class="card"><h2>沉浸课堂</h2>'
+    + '<p style="padding:5px 0;color:#555">· 事迹展陈 — 系统梳理"从桂电学子到消防英雄"的生命轨迹，实物展陈与图文史料生动呈现英雄形象</p>'
+    + '<p style="padding:5px 0;color:#555">· 情景演绎 — 创新角色扮演形式，宣讲员化身烈士战友、受灾群众，配合影像再现火场危急场景</p>'
+    + '<p style="padding:5px 0;color:#555">· 互动讨论 — "如果是我会怎么做"引导式提问，在"听讲—体验—思考—共鸣"中实现认知升华</p>'
+    + '<p style="padding:5px 0;color:#555">· 消防科普 — 结合英雄事迹开展校园消防安全知识与应急逃生技能培训</p>'
+    + '</div>'
+    + '<div class="card"><h2>预约须知</h2>'
+    + '<p style="font-size:13px;color:#888;padding:3px 0">开放时间：周二至周五 8:00-18:00</p>'
+    + '<p style="font-size:13px;color:#888;padding:3px 0">预约时段：08:00-09:30 / 10:00-11:30</p>'
+    + '<p style="font-size:13px;color:#888;padding:3px 0">　　　　　14:30-16:00 / 16:30-18:00</p>'
+    + '<p style="font-size:13px;color:#888;padding:3px 0">每时段仅接待一个单位</p>'
+    + '<p style="font-size:13px;color:#888;padding:3px 0">预约需经审核，通过后请按时到场</p>'
+    + '</div>'
+    + '<button class="btn btn-red" onclick="stopGallery();state.tab=\'booking\';render();loadSchedules();">立即预约</button>'
+    + '</div>';
+}
+
+function renderBooking() {
+  const {schedules, selectedDate} = state;
+  if (!schedules.length) return '<div class="container"><div class="loading">加载排期中...</div></div>';
+
+  const dateMap = {}; schedules.forEach(s => { if(!dateMap[s.date]) dateMap[s.date]=[]; dateMap[s.date].push(s); });
+  const dates = Object.keys(dateMap).sort();
+  if (!dates.length) return '<div class="container"><div class="empty">暂无可预约时段</div></div>';
+
+  const selDate = selectedDate || dates[0];
+  const slots = dateMap[selDate] || [];
+  const days = ['日','一','二','三','四','五','六'];
+
+  let h = '<div class="container"><h2 style="font-size:16px;margin-bottom:8px">选择日期</h2><div class="date-scroll">';
+  dates.forEach(d => {
+    const dt = new Date(d + 'T00:00:00');
+    h += '<div class="date-chip' + (d===selDate?' active':'') + '" data-date="' + d + '"><span>' + (dt.getMonth()+1) + '月' + dt.getDate() + '日</span><span class="dow">周' + days[dt.getDay()] + '</span></div>';
+  });
+  h += '</div><h2 style="font-size:16px;margin:8px 0">可选时段</h2>';
+  if (!slots.length) h += '<div class="empty">当天无可用时段</div>';
+  else {
+    h += '<div class="card" style="padding:0">';
+    slots.forEach(s => {
+      const labels = {open:['可预约','slot-available'],booked:['已预约','slot-booked'],closed:['已关闭','slot-closed']};
+      const lb = (labels[s.status] || [s.status,''])[0];
+      const cl = (labels[s.status] || [s.status,''])[1];
+      const disabled = s.status !== 'open';
+      h += '<div class="slot-row" data-sid="' + s.id + '" data-date="' + s.date + '" data-slot="' + s.time_slot + '"' + (disabled?' style="opacity:.5;pointer-events:none"':'') + '><span class="slot-time">' + s.time_slot + '</span><span class="slot-status ' + cl + '">' + lb + '</span><span class="slot-arrow">></span></div>';
+    });
+    h += '</div>';
+  }
+  h += '</div>';
+  return h;
+}
+
+function renderFormOverlay() {
+  const {selectedSlot, form, submitting} = state;
+  if (!selectedSlot) return;
+
+  let existing = document.getElementById('formOverlay');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'formOverlay';
+  overlay.className = 'form-overlay';
+  const minTime = selectedSlot.time_slot.split('-')[0];
+  const maxTime = selectedSlot.time_slot.split('-')[1];
+  overlay.innerHTML = '<div class="form-panel" id="formPanel">'
+    + '<button class="form-close" id="closeFormBtn">&times;</button>'
+    + '<div class="form-title">填写预约信息</div>'
+    + '<div class="form-slot">' + esc(selectedSlot.date) + ' ' + esc(selectedSlot.time_slot) + '</div>'
+    + '<div class="form-group"><label>预约到场时间 *</label><input id="f_arrival_time" type="time" step="600" min="' + minTime + '" max="' + maxTime + '" value="' + esc(form.arrival_time) + '"></div>'
+    + '<div class="form-group"><label>预约单位 *</label><input id="f_org_name" placeholder="如：xxx学院xxx支部" value="' + esc(form.org_name) + '"></div>'
+    + '<div class="form-group"><label>预约者姓名 *</label><input id="f_contact_name" placeholder="联系人姓名" value="' + esc(form.contact_name) + '"></div>'
+    + '<div class="form-group"><label>联系电话 *</label><input id="f_contact_phone" type="tel" placeholder="11位手机号" maxlength="11" value="' + esc(form.contact_phone) + '"></div>'
+    + '<div class="form-group"><label>QQ号 *</label><input id="f_contact_qq" placeholder="QQ号码" value="' + esc(form.contact_qq) + '"></div>'
+    + '<div class="form-group"><label>预约人数 *</label><input id="f_headcount" type="number" placeholder="请输入人数" value="' + esc(form.headcount) + '"></div>'
+    + '<button class="btn btn-red" id="submitBtn"' + (submitting?' disabled':'') + '>' + (submitting?'提交中...':'提交预约') + '</button>'
+    + '</div>';
+  document.body.appendChild(overlay);
+
+  const fields = ['arrival_time','org_name','contact_name','contact_phone','contact_qq','headcount'];
+  fields.forEach(f => {
+    const el = document.getElementById('f_' + f);
+    if (el) el.oninput = function() { state.form[f] = this.value; };
+  });
+
+  document.getElementById('closeFormBtn').onclick = closeForm;
+  overlay.onclick = function(e) { if(e.target === overlay) closeForm(); };
+  document.getElementById('submitBtn').onclick = doSubmit;
+}
+
+function closeForm() {
+  const el = document.getElementById('formOverlay');
+  if (el) el.remove();
+  state.showForm = false;
+  state.selectedSlot = null;
+  state.submitting = false;
+  if (state.tab === 'home') startGallery();
+}
+
+async function doSubmit() {
+  const f = state.form;
+  const required = {arrival_time:'预约到场时间',org_name:'预约单位',contact_name:'预约者姓名',contact_phone:'联系电话',contact_qq:'QQ号',headcount:'预约人数'};
+  for (const k in required) {
+    if (!f[k]) { alert('请填写' + required[k]); return; }
+  }
+  if (!/^1\d{10}$/.test(f.contact_phone)) { alert('手机号格式不正确'); return; }
+  if (!/^\d+$/.test(f.headcount) || parseInt(f.headcount) < 1) { alert('请填写正确的人数'); return; }
+
+  state.submitting = true;
+  const btn = document.getElementById('submitBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '提交中...'; }
+
+  const res = await fetch(API+'/api/bookings', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({...f, schedule_id: state.selectedSlot.id, headcount:parseInt(f.headcount)})
+  }).then(r => r.json());
+
+  if (res.ok) {
+    alert('预约成功，等待审核！');
+    closeForm();
+    state.form = {arrival_time:'',org_name:'',contact_name:'',contact_phone:'',contact_qq:'',headcount:''};
+    loadSchedules();
+  } else {
+    alert(res.msg);
+    state.submitting = false;
+    if (btn) { btn.disabled = false; btn.textContent = '提交预约'; }
+  }
+}
+
+function renderMine() {
+  stopGallery();
+  return '<div class="container">'
+    + '<h2 style="font-size:16px;margin-bottom:12px">查询我的预约</h2>'
+    + '<div style="display:flex;gap:8px;margin-bottom:16px">'
+    + '<input id="phoneInput" type="tel" placeholder="输入预约时填写的手机号" maxlength="11" value="' + esc(state.myPhone) + '" style="flex:1;height:44px;border:1px solid var(--border);border-radius:8px;padding:0 12px;font-size:14px">'
+    + '<button class="btn btn-red" style="flex-shrink:0;width:auto;padding:0 16px" id="searchBtn">查询</button>'
+    + '</div><div id="myResults">' + renderMyList() + '</div></div>';
+}
+
+function renderMyList() {
+  if (!state.myBookings.length) return '<div class="empty">输入手机号查询预约记录</div>';
+  const sm = {pending:['待审核','tag-pending'],approved:['已通过','tag-approved'],rejected:['已拒绝','tag-rejected'],cancelled:['已撤销','tag-cancelled'],completed:['已完结','tag-completed']};
+  return state.myBookings.map(b => {
+    const pair = sm[b.status] || [b.status,''];
+    const st = pair[0], sc = pair[1];
+    let extra = '';
+    if (b.status === 'rejected' && b.reject_reason) extra = '<br>拒绝原因：' + esc(b.reject_reason);
+    let actionBtn = '';
+    if (b.status === 'rejected') {
+      actionBtn = '<button class="rebook-btn btn-inline" data-bid="' + b.id + '" data-sid="' + b.schedule_id + '" data-date="' + b.date + '" data-slot="' + b.time_slot + '">重新预约</button>';
+    } else if (b.status === 'pending' || b.status === 'approved') {
+      actionBtn = '<button class="cancel-btn btn-inline btn-inline-outline" data-bid="' + b.id + '">撤销预约</button>';
+    }
+    return '<div class="card booking-card"><div class="bc-head"><strong>' + (b.date||'') + ' ' + (b.time_slot||'') + '</strong><span class="tag ' + sc + '">' + st + '</span></div><div class="bc-body">到场时间：' + esc(b.arrival_time||'') + '<br>单位：' + esc(b.org_name) + '<br>联系人：' + esc(b.contact_name) + '　电话：' + esc(b.contact_phone) + '<br>人数：' + b.headcount + '人' + extra + '</div>' + actionBtn + '</div>';
+  }).join('');
+}
+
+function bindAll() {
+  document.querySelectorAll('.tab').forEach(el => el.classList.toggle('active', el.dataset.tab===state.tab));
+  if (state.tab === 'booking') {
+    document.querySelectorAll('.date-chip').forEach(el => el.onclick = function() {
+      state.selectedDate = this.dataset.date;
+      render();
+    });
+    document.querySelectorAll('.slot-row').forEach(el => el.onclick = function() {
+      stopGallery();
+      state.selectedSlot = {id:parseInt(this.dataset.sid), date:this.dataset.date, time_slot:this.dataset.slot};
+      state.showForm = true;
+      renderFormOverlay();
+    });
+  }
+  if (state.tab === 'mine') {
+    const sb = document.getElementById('searchBtn'), pi = document.getElementById('phoneInput');
+    if (sb && pi) sb.onclick = async () => {
+      const p = pi.value.trim(); if(!p){alert('请输入手机号');return;}
+      state.myPhone = p;
+      const data = await fetch(API+'/api/bookings/my?phone='+encodeURIComponent(p)).then(r=>r.json());
+      state.myBookings = data;
+      render();
+    };
+    document.querySelectorAll('.rebook-btn').forEach(el => el.onclick = async function() {
+      const date = this.dataset.date, time_slot = this.dataset.slot;
+      state.tab = 'booking';
+      state.selectedDate = date;
+      await loadSchedules();
+      const slot = state.schedules.find(s => s.date === date && s.time_slot === time_slot);
+      if (!slot) { alert('该时段已不可预约'); return; }
+      state.selectedSlot = {id:slot.id, date:slot.date, time_slot:slot.time_slot};
+      state.showForm = true;
+      render();
+    });
+    document.querySelectorAll('.cancel-btn').forEach(el => el.onclick = async function() {
+      if (!state.config) state.config = await fetch(API+'/api/config').then(r=>r.json());
+      let msg = '请联系负责人 ' + state.config.contact_name + ' 进行撤销处理\n电话：' + state.config.contact_phone;
+      if (state.config.contact_qq) msg += '\nQQ：' + state.config.contact_qq;
+      alert(msg);
+    });
+  }
+}
+
+async function loadSchedules() {
+  state.loading = true;
+  if (state.tab === 'booking') render();
+  const data = await fetch(API+'/api/schedules').then(r=>r.json());
+  state.schedules = data; state.loading = false;
+  if (state.tab === 'booking') render();
+}
+
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');}
+
+document.getElementById('nav').addEventListener('click', function(e) {
+  const tab = e.target.closest('.tab'); if (!tab) return;
+  stopGallery();
+  state.tab = tab.dataset.tab;
+  render();
+  if (state.tab === 'booking') loadSchedules();
+});
+
+render();
+loadSchedules();
+</script>
+</body>
+</html>
