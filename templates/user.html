@@ -101,11 +101,19 @@ function setState(patch) {
 }
 
 function render() {
+  const sy = window.scrollY;
+  const ds = document.querySelector('.date-scroll');
+  const dsl = ds ? ds.scrollLeft : 0;
   const el = document.getElementById('app');
   if (state.tab === 'home') el.innerHTML = renderHome();
   else if (state.tab === 'booking') el.innerHTML = renderBooking();
   else if (state.tab === 'mine') el.innerHTML = renderMine();
   bindAll();
+  window.scrollTo(0, sy);
+  if (state.tab === 'booking') {
+    const ds2 = document.querySelector('.date-scroll');
+    if (ds2 && dsl) ds2.scrollLeft = dsl;
+  }
   if (state.tab === 'home') {
     startGallery();
     document.querySelectorAll('.gallery-dot').forEach(dot => {
