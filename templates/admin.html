@@ -63,7 +63,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;font-
 const API = '/admin';
 let state = {loggedIn:false,token:'',filter:'pending',bookings:[],stats:null};
 
-function setState(p){Object.assign(state,p);render();}
+function setState(p){Object.assign(state,p);const sy=window.scrollY;render();window.scrollTo(0,sy);}
 
 function render(){
   document.getElementById('app').innerHTML = state.loggedIn ? renderPanel() : renderLogin();
