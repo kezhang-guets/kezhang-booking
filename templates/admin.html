@@ -46,6 +46,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;font-
 .stats-mini span{background:#fff;padding:4px 10px;border-radius:12px;font-size:12px;color:var(--muted)}
 
 .empty{text-align:center;padding:40px 0;color:#ccc}
+
+.modal-mask{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:999;display:flex;align-items:center;justify-content:center}
+.modal-box{background:#fff;border-radius:12px;width:300px;padding:24px 20px 16px;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,.15)}
+.modal-box p{font-size:15px;color:#333;margin-bottom:20px;line-height:1.6}
+.modal-btns{display:flex;gap:10px}
+.modal-btns button{flex:1;height:40px;border-radius:8px;font-size:14px;cursor:pointer;border:none}
+.modal-cancel{background:#f5f5f5;color:#666}
+.modal-ok{background:var(--red);color:#fff}
 </style>
 </head>
 <body>
@@ -178,14 +186,14 @@ function bind(){
     const {bid,action} = el.dataset;
     let reason = '';
     if(action==='reject'){while(!reason){reason=prompt('请输入拒绝原因（必填）：');if(reason===null)return;reason=(reason||'').trim();if(!reason)alert('拒绝原因不能为空');}}
-    if(action==='cancel'){if(!confirm('确定撤销该预约？'))return;}
-    if(action==='complete'){if(!confirm('确定标记为已完结？'))return;}
+    if(action==='cancel'){if(!(await customConfirm('确定撤销该预约？')))return;}
+    if(action==='complete'){if(!(await customConfirm('确定标记为已完结？')))return;}
     await fetch(API+'/api/bookings/'+bid+'/review',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,reason,token:state.token})});
     loadData();
   });
 
   document.querySelectorAll('.del-btn').forEach(el => el.onclick = async ()=>{
-    if(!confirm('确定永久删除该记录？此操作不可恢复。')) return;
+    if(!(await customConfirm('确定永久删除该记录？此操作不可恢复。'))) return;
     const bid = el.dataset.bid;
     await fetch(API+'/api/bookings/'+bid+'/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:state.token})});
     loadData();
@@ -218,6 +226,18 @@ async function doLogin(){
 }
 
 function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');}
+
+function customConfirm(msg, okText, cancelText){
+  return new Promise((resolve)=>{
+    const mask = document.createElement('div');
+    mask.className = 'modal-mask';
+    mask.innerHTML = `<div class="modal-box"><p>${msg}</p><div class="modal-btns"><button class="modal-cancel">${cancelText||'取消'}</button><button class="modal-ok">${okText||'确定'}</button></div></div>`;
+    mask.querySelector('.modal-cancel').onclick = ()=>{mask.remove();resolve(false);};
+    mask.querySelector('.modal-ok').onclick = ()=>{mask.remove();resolve(true);};
+    document.body.appendChild(mask);
+  });
+}
+
 render();
 </script>
 </body>
