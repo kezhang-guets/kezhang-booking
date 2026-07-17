@@ -63,7 +63,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;font-
 const API = '/admin';
 let state = {loggedIn:false,token:'',filter:'pending',bookings:[],stats:null};
 
-function setState(p){Object.assign(state,p);const sy=window.scrollY;render();window.scrollTo(0,sy);}
+function setState(p){Object.assign(state,p);const sy=window.scrollY;const tb=document.querySelector('.tab-bar');const ts=tb?tb.scrollLeft:0;render();window.scrollTo(0,sy);const tb2=document.querySelector('.tab-bar');if(tb2){tb2.scrollLeft=ts;const active=tb2.querySelector('.tab-item.active');if(active)active.scrollIntoView({block:'nearest',inline:'center'});}}
 
 function render(){
   document.getElementById('app').innerHTML = state.loggedIn ? renderPanel() : renderLogin();
