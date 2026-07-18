@@ -200,7 +200,7 @@ function renderBooking() {
   else {
     h += '<div class="card" style="padding:0">';
     slots.forEach(s => {
-      const labels = {open:['可预约','slot-available'],booked:['已预约','slot-booked'],closed:['已关闭','slot-closed']};
+      const labels = {open:['可预约','slot-available'],booked:['已被预约','slot-booked'],closed:['已关闭','slot-closed']};
       const lb = (labels[s.status] || [s.status,''])[0];
       const cl = (labels[s.status] || [s.status,''])[1];
       const disabled = s.status !== 'open';
